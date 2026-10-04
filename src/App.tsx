@@ -205,7 +205,7 @@ function RSVPForm() {
   const endpoint = (import.meta as any).env?.VITE_RSVP_ENDPOINT as string | undefined;
 
   const [name, setName] = useState("");
-  const [guestCount, setGuestCount] = useState<number>(1);
+  const [guestCount, setGuestCount] = useState<number | "">(1);
   const [attendance, setAttendance] = useState<Attendance>("yes");
 
   const [submitting, setSubmitting] = useState(false);
@@ -238,7 +238,7 @@ function RSVPForm() {
 
     const payload = {
       name: name.trim(),
-      guestCount: isAttending ? guestCount : 0,
+      guestCount: isAttending ? Number(guestCount) : 0,
       attendance,
       submittedAt: new Date().toISOString(),
     };
@@ -315,7 +315,7 @@ function RSVPForm() {
               type="number"
               min={1}
               value={guestCount}
-              onChange={(ev) => setGuestCount(Number(ev.target.value || 1))}
+              onChange={(ev) => setGuestCount(ev.target.value === "" ? "" : Number(ev.target.value))}
               placeholder="Number of guests"
               className="w-full rounded-xl border border-sage/20 bg-white/60 px-3 py-3 md:py-2.5 text-xs text-zinc-700 outline-none"
             />
@@ -1151,8 +1151,13 @@ export default function App() {
             </motion.div>
           )}
         </div>
-        <Countdown />
 
+        <div className="text-center mt-16 md:mt-24 -mb-4 md:-mb-8 px-4 relative z-10">
+          <h2 className="serif italic text-2xl md:text-4xl text-umber font-medium">Countdown to our special day</h2>
+          <div className="w-16 md:w-24 h-[1px] bg-sage/30 mx-auto mt-3 md:mt-4" />
+        </div>
+
+        <Countdown />
         {/* Bento Grid Layout - Flipped Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-10 relative">
           <motion.div
@@ -1324,7 +1329,7 @@ export default function App() {
                     <motion.div initial={{ scale: 0.8, opacity: 0 }} whileHover={{ scale: 1, opacity: 1 }} className="bg-white/10 backdrop-blur-lg p-6 rounded-full border border-white/20">
                       <Clock size={32} className="text-white" />
                     </motion.div>
-                    <p className="serif text-white text-3xl md:text-5xl italic tracking-widest mt-6 drop-shadow-lg">Event Timeline</p>
+                    <p className="serif text-sage text-3xl md:text-5xl italic tracking-widest mt-6 drop-shadow-lg">Event Timeline</p>
                     <div className="mt-4 flex gap-2">
                       {[1, 2, 3].map((i) => (
                         <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/50" />
@@ -1387,7 +1392,12 @@ export default function App() {
             "Love brought us together, made more beautiful with your presence"
           </p>
           <p className="serif text-sage/60 text-sm italic">We can't wait to celebrate with you</p>
-
+          
+          <div className="pt-8">
+            <p className="text-[10px] md:text-xs text-zinc-400 font-sans tracking-wider">
+              Want a beautiful wedding website like this? Create yours with <a target="_blank" rel="noreferrer" className="text-sage font-semibold hover:text-umber transition-colors underline decoration-sage/30 underline-offset-4" href="https://wa.me/94707819074">invitemint</a>
+            </p>
+          </div>
         </motion.footer>
       </motion.main>
 
