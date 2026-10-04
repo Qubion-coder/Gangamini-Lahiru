@@ -202,7 +202,7 @@ function RealisticPetal({ size = 20, className = "" }: { size?: number; classNam
 
 type Attendance = "yes" | "no";
 function RSVPForm() {
-  const endpoint = (import.meta as any).env?.VITE_RSVP_ENDPOINT as string | undefined;
+  const endpoint = "https://script.google.com/macros/s/AKfycbxlIU5LlVZg9wI0DQi7EzHfXXNgGWO3ubH5DWPZM7_4JCGKpssUxDqu155COwhPHnLsiQ/exec";
 
   const [name, setName] = useState("");
   const [guestCount, setGuestCount] = useState<number>(1);
@@ -234,6 +234,7 @@ function RSVPForm() {
     }
 
     const payload = {
+      type: "RSVP",
       name: name.trim(),
       guestCount: Number(guestCount),
       attendance: guestCount > 0 ? "yes" : "no",
@@ -243,22 +244,12 @@ function RSVPForm() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(String(res.status));
-      setSuccessMessage("RSVP saved. Thank you!");
+      const fd = new FormData();
+      fd.append("payload", JSON.stringify(payload));
+      await fetch(endpoint, { method: "POST", mode: "no-cors", body: fd });
+      setSuccessMessage("RSVP submitted. Thank you!");
     } catch {
-      try {
-        const fd = new FormData();
-        fd.append("payload", JSON.stringify(payload));
-        await fetch(endpoint, { method: "POST", mode: "no-cors", body: fd });
-        setSuccessMessage("RSVP submitted. Thank you!");
-      } catch {
-        setErrorMessage("Could not submit RSVP. Please try again.");
-      }
+      setErrorMessage("Could not submit RSVP. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -412,7 +403,7 @@ function Countdown() {
 }
 
 function WishesForm() {
-  const endpoint = (import.meta as any).env?.VITE_WISHES_ENDPOINT as string | undefined;
+  const endpoint = "https://script.google.com/macros/s/AKfycbxlIU5LlVZg9wI0DQi7EzHfXXNgGWO3ubH5DWPZM7_4JCGKpssUxDqu155COwhPHnLsiQ/exec";
 
   const [name, setName] = useState("");
   const [wish, setWish] = useState("");
@@ -433,29 +424,17 @@ function WishesForm() {
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    const payload = { name: name.trim(), wish: wish.trim(), submittedAt: new Date().toISOString() };
+    const payload = { type: "Wish", name: name.trim(), wish: wish.trim(), submittedAt: new Date().toISOString() };
 
     try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(String(res.status));
+      const fd = new FormData();
+      fd.append("payload", JSON.stringify(payload));
+      await fetch(endpoint, { method: "POST", mode: "no-cors", body: fd });
       setSuccessMessage("Thank you for your beautiful wishes!");
       setName("");
       setWish("");
     } catch {
-      try {
-        const fd = new FormData();
-        fd.append("payload", JSON.stringify(payload));
-        await fetch(endpoint, { method: "POST", mode: "no-cors", body: fd });
-        setSuccessMessage("Thank you for your beautiful wishes!");
-        setName("");
-        setWish("");
-      } catch {
-        setErrorMessage("Could not send your wish. Please try again.");
-      }
+      setErrorMessage("Could not send your wish. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -512,7 +491,7 @@ function WishesForm() {
   );
 }
 
-export default function App() {
+export default function App({ guestName }: { guestName?: string }) {
   const [isFlapOpen, setIsFlapOpen] = useState(false);
   const [isOpened, setIsOpened] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -858,7 +837,7 @@ export default function App() {
       </AnimatePresence>
 
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <img src="/background1.png" alt="Background" className="w-full h-full object-cover opacity-[0.35] md:opacity-[0.45]" />
+        <img src="/background1.webp" alt="Background" className="w-full h-full object-cover opacity-[0.35] md:opacity-[0.45]" />
         <div className="absolute inset-0 bg-gradient-to-b from-paper/40 via-transparent to-paper/40" />
       </div>
 
@@ -889,9 +868,15 @@ export default function App() {
             <span className="serif italic text-3xl sm:text-5xl md:text-[8rem] text-sage font-light leading-tight drop-shadow-sm mb-1 md:mb-6">
               You're Invited!
             </span>
-            <span className="serif text-sm sm:text-base md:text-4xl text-umber tracking-[0.15em] md:tracking-[0.3em] uppercase font-light">
-              to the wedding of
-            </span>
+            {guestName ? (
+              <span className="serif text-base sm:text-lg md:text-3xl text-umber font-light mb-4 md:mb-8 mt-4 max-w-3xl leading-relaxed italic px-4">
+                We cordially invite <span className="font-medium text-sage">{guestName}</span> to celebrate our special day with us.
+              </span>
+            ) : (
+              <span className="serif text-sm sm:text-base md:text-4xl text-umber tracking-[0.15em] md:tracking-[0.3em] uppercase font-light">
+                to the wedding of
+              </span>
+            )}
           </h1>
 
           <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 md:gap-16 mt-4 md:mt-8 relative w-full px-2">
