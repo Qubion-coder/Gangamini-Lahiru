@@ -1329,7 +1329,7 @@ export default function App() {
                     <motion.div initial={{ scale: 0.8, opacity: 0 }} whileHover={{ scale: 1, opacity: 1 }} className="bg-white/10 backdrop-blur-lg p-6 rounded-full border border-white/20">
                       <Clock size={32} className="text-white" />
                     </motion.div>
-                    <p className="serif text-sage text-3xl md:text-5xl italic tracking-widest mt-6 drop-shadow-lg">Event Timeline</p>
+                    <p className="serif text-black text-3xl md:text-5xl italic tracking-widest mt-6 drop-shadow-lg">Event Timeline</p>
                     <div className="mt-4 flex gap-2">
                       {[1, 2, 3].map((i) => (
                         <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/50" />
