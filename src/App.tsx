@@ -186,8 +186,8 @@ function RealisticPetal({ size = 20, className = "" }: { size?: number; classNam
       <svg width="100%" height="100%" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <radialGradient id="petalGrad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#C4714A" stopOpacity="0.85" />
-            <stop offset="100%" stopColor="#9C8470" stopOpacity="0.65" />
+            <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.85" />
+            <stop offset="100%" stopColor="#C9A66B" stopOpacity="0.65" />
           </radialGradient>
         </defs>
         <path
@@ -201,61 +201,22 @@ function RealisticPetal({ size = 20, className = "" }: { size?: number; classNam
 }
 
 type Attendance = "yes" | "no";
-type PartyType = "individual" | "family";
-type MealPreference = "veg" | "non-veg";
-
-type GuestEntry = {
-  name: string;
-  meal: MealPreference;
-};
-
 function RSVPForm() {
   const endpoint = (import.meta as any).env?.VITE_RSVP_ENDPOINT as string | undefined;
 
-  const [attendance, setAttendance] = useState<Attendance>("yes");
-  const [partyType, setPartyType] = useState<PartyType>("individual");
+  const [name, setName] = useState("");
   const [guestCount, setGuestCount] = useState<number>(1);
-  const [guests, setGuests] = useState<GuestEntry[]>([{ name: "", meal: "non-veg" }]);
+  const [attendance, setAttendance] = useState<Attendance>("yes");
 
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isAttending = attendance === "yes";
-  const effectiveGuestCount = partyType === "family" ? Math.max(2, guestCount) : 1;
-
-  useEffect(() => {
-    if (partyType === "individual") {
-      setGuestCount(1);
-      setGuests((prev) => [prev[0] ?? { name: "", meal: "non-veg" }]);
-      return;
-    }
-
-    setGuestCount((c) => (c < 2 ? 2 : c));
-  }, [partyType]);
-
-  useEffect(() => {
-    const desiredCount = partyType === "family" ? Math.max(2, guestCount) : 1;
-    setGuests((prev) => {
-      if (prev.length === desiredCount) return prev;
-      const next = prev.slice(0, desiredCount);
-      while (next.length < desiredCount) next.push({ name: "", meal: "non-veg" });
-      return next;
-    });
-  }, [guestCount, partyType]);
-
-  function updateGuest(index: number, patch: Partial<GuestEntry>) {
-    setGuests((prev) => prev.map((g, i) => (i === index ? { ...g, ...patch } : g)));
-  }
 
   function validate(): string | null {
-    const primaryName = guests[0]?.name?.trim();
-    if (!primaryName) return "Please enter your name.";
-    if (attendance === "no") return null;
-
-    const missingName = guests.some((g) => !g.name.trim());
-    if (missingName) return "Please enter all guest names.";
-
+    if (!name.trim()) return "Please enter your name.";
+    if (isAttending && guestCount < 1) return "Please enter a valid number of guests.";
     return null;
   }
 
@@ -276,16 +237,14 @@ function RSVPForm() {
     }
 
     const payload = {
+      name: name.trim(),
+      guestCount: isAttending ? guestCount : 0,
       attendance,
-      partyType,
-      guestCount: isAttending ? effectiveGuestCount : 0,
-      guests: isAttending ? guests : [guests[0]],
       submittedAt: new Date().toISOString(),
     };
 
     setSubmitting(true);
     try {
-      // Try JSON request first (works if endpoint supports CORS).
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -295,7 +254,6 @@ function RSVPForm() {
       setSuccessMessage("RSVP saved. Thank you!");
     } catch {
       try {
-        // Fallback for Apps Script deployments without CORS.
         const fd = new FormData();
         fd.append("payload", JSON.stringify(payload));
         await fetch(endpoint, { method: "POST", mode: "no-cors", body: fd });
@@ -315,7 +273,7 @@ function RSVPForm() {
       <p className="text-[10px] md:text-xs text-zinc-500 uppercase tracking-widest mb-4 md:mb-6 text-center leading-relaxed">
         Please let us know by
         <br />
-        04.05.2026
+        20.10.2026
       </p>
 
       <form onSubmit={submit} className="space-y-4 md:space-y-4 px-1 md:px-2">
@@ -324,8 +282,9 @@ function RSVPForm() {
             type="button"
             data-no-flip
             onClick={() => setAttendance("yes")}
-            className={`py-3 md:py-2.5 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold border transition-colors ${attendance === "yes" ? "bg-sage text-white border-sage" : "bg-white/40 text-sage border-sage/30"
-              }`}
+            className={`py-3 md:py-2.5 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold border transition-colors ${
+              attendance === "yes" ? "bg-sage text-white border-sage" : "bg-white/40 text-sage border-sage/30"
+            }`}
           >
             Attending
           </button>
@@ -333,79 +292,34 @@ function RSVPForm() {
             type="button"
             data-no-flip
             onClick={() => setAttendance("no")}
-            className={`py-3 md:py-2.5 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold border transition-colors ${attendance === "no" ? "bg-zinc-800 text-white border-zinc-800" : "bg-white/40 text-zinc-700 border-zinc-300/60"
-              }`}
+            className={`py-3 md:py-2.5 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold border transition-colors ${
+              attendance === "no" ? "bg-zinc-800 text-white border-zinc-800" : "bg-white/40 text-zinc-700 border-zinc-300/60"
+            }`}
           >
             Not Attending
           </button>
         </div>
 
-        <div className={`grid grid-cols-2 gap-2 ${!isAttending ? "opacity-60 pointer-events-none" : ""}`}>
-          <button
-            type="button"
+        <div className="space-y-2">
+          <input
             data-no-flip
-            onClick={() => setPartyType("individual")}
-            className={`py-3 md:py-2 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold border transition-colors ${partyType === "individual" ? "bg-sage/90 text-white border-sage" : "bg-white/40 text-sage border-sage/30"
-              }`}
-          >
-            Individual
-          </button>
-          <button
-            type="button"
-            data-no-flip
-            onClick={() => setPartyType("family")}
-            className={`py-3 md:py-2 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold border transition-colors ${partyType === "family" ? "bg-sage/90 text-white border-sage" : "bg-white/40 text-sage border-sage/30"
-              }`}
-          >
-            Family
-          </button>
-        </div>
+            value={name}
+            onChange={(ev) => setName(ev.target.value)}
+            placeholder="Your name"
+            className="w-full rounded-xl border border-sage/20 bg-white/60 px-3 py-3 md:py-2.5 text-xs text-zinc-700 outline-none"
+          />
 
-        {isAttending && partyType === "family" && (
-          <div className="flex items-center justify-between gap-3">
-            <label className="text-[10px] md:text-xs uppercase tracking-widest font-bold text-zinc-600">Family Count</label>
+          <div className={`transition-opacity duration-300 ${!isAttending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
             <input
               data-no-flip
               type="number"
-              min={2}
-              max={12}
-              value={effectiveGuestCount}
-              onChange={(ev) => setGuestCount(Number(ev.target.value || 2))}
-              className="w-28 rounded-xl border border-sage/20 bg-white/60 px-3 py-2.5 text-xs text-zinc-700 outline-none"
+              min={1}
+              value={guestCount}
+              onChange={(ev) => setGuestCount(Number(ev.target.value || 1))}
+              placeholder="Number of guests"
+              className="w-full rounded-xl border border-sage/20 bg-white/60 px-3 py-3 md:py-2.5 text-xs text-zinc-700 outline-none"
             />
           </div>
-        )}
-
-        <div className="space-y-2">
-          {(isAttending ? guests : [guests[0]]).map((guest, idx) => (
-            <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_140px] gap-2">
-              <input
-                data-no-flip
-                value={guest?.name ?? ""}
-                onChange={(ev) => updateGuest(idx, { name: ev.target.value })}
-                placeholder={
-                  isAttending
-                    ? partyType === "family"
-                      ? `Guest ${idx + 1} name`
-                      : "Your name"
-                    : "Your name"
-                }
-                className="w-full rounded-xl border border-sage/20 bg-white/60 px-3 py-2.5 text-xs text-zinc-700 outline-none"
-              />
-
-              <select
-                data-no-flip
-                disabled={!isAttending}
-                value={guest?.meal ?? "non-veg"}
-                onChange={(ev) => updateGuest(idx, { meal: ev.target.value as MealPreference })}
-                className={`w-full rounded-xl border border-sage/20 bg-white/60 px-3 py-2.5 text-xs text-zinc-700 outline-none ${!isAttending ? "opacity-60" : ""
-                  }`}
-              >
-                <option value="veg">Veg</option>
-                <option value="non-veg">Non-Veg</option>
-              </select>
-            </div>
-          ))}
         </div>
 
         {errorMessage && <p className="text-[10px] md:text-xs text-red-700 font-semibold">{errorMessage}</p>}
@@ -421,11 +335,151 @@ function RSVPForm() {
         </button>
 
         {!endpoint && (
-          <p className="text-[10px] md:text-[10px] text-zinc-500 leading-relaxed">
+          <p className="text-[10px] md:text-[10px] text-zinc-500 leading-relaxed text-center">
             Admin setup needed: set <span className="font-bold">VITE_RSVP_ENDPOINT</span> to your Google Apps Script URL.
           </p>
         )}
       </form>
+    </div>
+  );
+}
+
+function Countdown() {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const targetDate = new Date("2026-11-04T00:00:00").getTime();
+    
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const difference = targetDate - now;
+
+      if (difference > 0) {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((difference % (1000 * 60)) / 1000),
+        });
+      } else {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex justify-center gap-3 md:gap-8 my-8 md:my-16">
+      {Object.entries(timeLeft).map(([unit, value]) => (
+        <div key={unit} className="flex flex-col items-center">
+          <div className="w-14 h-14 md:w-24 md:h-24 rounded-2xl bg-white/40 backdrop-blur-md border border-sage/20 flex items-center justify-center shadow-lg mb-2">
+            <span className="serif text-xl md:text-4xl text-sage">{value}</span>
+          </div>
+          <span className="text-[9px] md:text-xs uppercase tracking-widest text-zinc-500 font-bold">{unit}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function WishesForm() {
+  const endpoint = (import.meta as any).env?.VITE_WISHES_ENDPOINT as string | undefined;
+
+  const [name, setName] = useState("");
+  const [wish, setWish] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !wish.trim()) return;
+    
+    if (!endpoint) {
+      setErrorMessage("Wishes saving is not configured yet.");
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    const payload = { name: name.trim(), wish: wish.trim(), submittedAt: new Date().toISOString() };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setSuccessMessage("Thank you for your beautiful wishes!");
+      setName("");
+      setWish("");
+    } catch {
+      try {
+        const fd = new FormData();
+        fd.append("payload", JSON.stringify(payload));
+        await fetch(endpoint, { method: "POST", mode: "no-cors", body: fd });
+        setSuccessMessage("Thank you for your beautiful wishes!");
+        setName("");
+        setWish("");
+      } catch {
+        setErrorMessage("Could not send your wish. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="w-full h-full bg-[#F9F6F0] p-6 flex flex-col justify-center items-center text-center relative rounded-[2rem] shadow-2xl border border-white/40 ring-1 ring-black/5 overflow-hidden">
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/natural-paper.png')] opacity-40 pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-sage/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative z-10 w-full max-w-sm mx-auto space-y-4 md:space-y-6">
+        <div className="flex flex-col items-center gap-1">
+          <Heart className="text-sage/70 w-6 h-6 md:w-8 md:h-8 mb-2" fill="currentColor" />
+          <h3 className="serif text-2xl md:text-3xl text-umber font-medium">Blessings & Wishes</h3>
+          <p className="text-[10px] md:text-xs text-zinc-500 uppercase tracking-widest mt-1">Share your love</p>
+        </div>
+
+        <form onSubmit={submit} className="space-y-3 w-full px-2">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your Name"
+            required
+            className="w-full rounded-xl border border-sage/20 bg-white/60 px-4 py-3 text-sm text-zinc-700 outline-none focus:border-sage/50 transition-colors"
+          />
+          <textarea
+            value={wish}
+            onChange={(e) => setWish(e.target.value)}
+            placeholder="Your Wish..."
+            required
+            rows={3}
+            className="w-full rounded-xl border border-sage/20 bg-white/60 px-4 py-3 text-sm text-zinc-700 outline-none focus:border-sage/50 transition-colors resize-none"
+          />
+          
+          {errorMessage && <p className="text-[10px] md:text-xs text-red-700 font-semibold">{errorMessage}</p>}
+          {successMessage && <p className="text-[10px] md:text-xs text-sage font-bold py-1">{successMessage}</p>}
+          
+          <button
+            type="submit"
+            disabled={submitting || !name.trim() || !wish.trim()}
+            className="w-full bg-sage text-white py-3 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold disabled:opacity-60 transition-opacity"
+          >
+            {submitting ? "Sending..." : "Send Wish"}
+          </button>
+
+          {!endpoint && (
+            <p className="text-[10px] md:text-[10px] text-zinc-500 leading-relaxed text-center">
+              Admin setup needed: set <span className="font-bold">VITE_WISHES_ENDPOINT</span>
+            </p>
+          )}
+        </form>
+      </div>
     </div>
   );
 }
@@ -528,7 +582,7 @@ export default function App() {
           <motion.div
             initial={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.8, delay: 0.5 } }}
-            className="fixed inset-0 z-[100] bg-paper/95 backdrop-blur-md flex items-center justify-center p-6 overflow-hidden"
+            className="fixed inset-0 z-[100] bg-[#FAF8F5] flex items-center justify-center p-6 overflow-hidden"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -536,11 +590,11 @@ export default function App() {
               transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
               className="absolute top-12 md:top-24 left-0 right-0 text-center z-10 pointer-events-none"
             >
-              <h1 className="serif text-4xl md:text-6xl text-sage/80 font-light tracking-[0.2em] drop-shadow-xl">
-                Zerlin & Hashimi
+              <h1 className="serif text-4xl md:text-6xl text-[#2A2A2A] font-light tracking-[0.2em] drop-shadow-xl">
+                Gangamini & Lahiru
               </h1>
-              <p className="mt-3 text-[10px] md:text-xs uppercase tracking-[0.6em] text-sage/60 font-bold">
-                23 May 2026
+              <p className="mt-3 text-[10px] md:text-xs uppercase tracking-[0.6em] text-[#4A3C1A] font-bold">
+                04 November 2026
               </p>
             </motion.div>
 
@@ -616,7 +670,7 @@ export default function App() {
                       <div
                         className="rounded-full shadow-[0_0_15px_rgba(196,113,74,0.4)]"
                         style={{
-                          backgroundColor: i % 2 === 0 ? "#C4714A" : "#A84C2C",
+                          backgroundColor: i % 2 === 0 ? "#D4AF37" : "#B8860B",
                           width: Math.random() * 6 + 2 + "px",
                           height: Math.random() * 6 + 2 + "px",
                           filter: `blur(${Math.random() * 1}px)`,
@@ -667,7 +721,7 @@ export default function App() {
                     key={`bokeh-${i}`}
                     className="absolute rounded-full mix-blend-soft-light"
                     style={{
-                      backgroundColor: i % 2 === 0 ? "#9C8470" : "#F5EFE0",
+                      backgroundColor: i % 2 === 0 ? "#C9A66B" : "#F9F6F0",
                       opacity: 0.3,
                       width: Math.random() * 150 + 100 + "px",
                       height: Math.random() * 150 + 100 + "px",
@@ -698,7 +752,7 @@ export default function App() {
               className="relative w-full max-w-2xl h-80 md:h-[450px] rounded-[2.25rem] shadow-[0_34px_80px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center z-10 overflow-hidden"
             >
               {/* premium envelope material */}
-              <div className="absolute inset-0 bg-gradient-to-b from-sage via-sage/90 to-rust" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#E5D3A2] via-[#E5D3A2]/90 to-[#D4AF37]" />
               <div className="absolute inset-0 opacity-25 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] pointer-events-none" />
               <div className="absolute inset-0 bg-gradient-to-br from-white/16 via-transparent to-umber/25 pointer-events-none" />
               <div className="absolute inset-[10px] rounded-[1.8rem] border border-white/18 pointer-events-none" />
@@ -712,10 +766,10 @@ export default function App() {
               )}
 
               <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 md:space-y-6">
-                <span className="serif text-white/50 text-lg md:text-3xl tracking-[0.4em] md:tracking-[0.6em] uppercase text-center px-4">
+                <span className="serif text-[#2A2A2A] text-lg md:text-3xl tracking-[0.4em] md:tracking-[0.6em] uppercase text-center px-4">
                   The Invitation
                 </span>
-                <div className="w-10 md:w-16 h-px bg-white/20" />
+                <div className="w-10 md:w-16 h-px bg-[#2A2A2A]/30" />
               </div>
 
               <div className="absolute bottom-0 left-0 right-0 h-[65%] bg-white/5 clip-path-envelope-bottom pointer-events-none rounded-b-[2rem]" />
@@ -728,7 +782,7 @@ export default function App() {
                 style={{ transformOrigin: "top", backfaceVisibility: "hidden" }}
                 className="absolute top-0 left-0 right-0 h-[55%] drop-shadow-2xl z-20 rounded-t-[2.25rem] clip-path-envelope flex flex-col items-center justify-start overflow-hidden pt-8 pointer-events-none"
               >
-                <div className="absolute inset-0 bg-gradient-to-b from-sage to-rust" />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#E5D3A2] to-[#D4AF37]" />
                 <div className="absolute inset-0 opacity-22 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] pointer-events-none" />
                 <div className="absolute inset-0 bg-gradient-to-b from-white/18 via-transparent to-umber/25" />
                 <div className="absolute top-0 left-0 right-0 h-px bg-white/25" />
@@ -748,11 +802,11 @@ export default function App() {
                     className="flex flex-col items-center gap-4 mt-8 md:mt-12 group"
                   >
                     <div className="w-24 h-24 md:w-32 md:h-32 rounded-full shadow-[0_18px_50px_-18px_rgba(0,0,0,0.65)] flex items-center justify-center relative group-hover:scale-105 transition-transform duration-500 bg-paper/10 border border-white/30 p-1.5 backdrop-blur-md">
-                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/14 via-transparent to-umber/25 pointer-events-none" />
-                      <div className="w-full h-full rounded-full bg-gradient-to-br from-sage to-rust shadow-[inset_0_-8px_18px_rgba(0,0,0,0.28),0_8px_18px_rgba(0,0,0,0.22)] flex items-center justify-center border border-white/14 relative overflow-hidden">
-                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-20 h-12 bg-paper/25 blur-2xl rounded-full" />
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/14 via-transparent to-[#B8860B]/25 pointer-events-none" />
+                      <div className="w-full h-full rounded-full bg-gradient-to-br from-[#E5D3A2] via-[#D4AF37] to-[#B8860B] shadow-[inset_0_-8px_18px_rgba(0,0,0,0.28),0_8px_18px_rgba(0,0,0,0.22)] flex items-center justify-center border border-[#E5D3A2]/40 relative overflow-hidden">
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-20 h-12 bg-white/25 blur-2xl rounded-full" />
                         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,0.35)_0%,transparent_55%)]" />
-                        <Heart className="relative text-paper/90 w-10 h-10 md:w-14 md:h-14 drop-shadow-md mt-1" fill="currentColor" />
+                        <Heart className="relative text-[#E5D3A2] w-10 h-10 md:w-14 md:h-14 drop-shadow-md mt-1" fill="currentColor" />
                       </div>
                     </div>
 
@@ -760,7 +814,7 @@ export default function App() {
                       animate={!reduceEffects ? { y: [0, 5, 0] } : { y: 0 }}
                       transition={!reduceEffects ? { repeat: Infinity, duration: 2, ease: "easeInOut" } : { duration: 0 }}
                     >
-                      <p className="serif text-white/75 tracking-[0.32em] uppercase text-[10px] md:text-xs whitespace-nowrap">
+                      <p className="serif text-[#2A2A2A]/80 tracking-[0.32em] uppercase text-[10px] md:text-xs whitespace-nowrap">
                         Tap to break seal
                       </p>
                     </motion.div>
@@ -812,8 +866,8 @@ export default function App() {
           <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 md:gap-16 mt-4 md:mt-8 relative w-full px-2">
             <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-32 bg-sage/5 blur-3xl rounded-full" />
 
-            <motion.h2 whileHover={{ scale: 1.05 }} className="script text-[13vw] sm:text-6xl md:text-9xl text-sage drop-shadow-lg relative z-10 leading-none">
-              Zerlin
+            <motion.h2 whileHover={{ scale: 1.05 }} className="script text-[11vw] sm:text-5xl md:text-8xl text-sage drop-shadow-lg relative z-10 leading-none">
+              Gangamini
             </motion.h2>
 
             <div className="relative flex items-center justify-center shrink-0">
@@ -829,8 +883,8 @@ export default function App() {
               <div className="h-px w-6 md:w-24 bg-sage/20 hidden md:block" />
             </div>
 
-            <motion.h2 whileHover={{ scale: 1.05 }} className="script text-[13vw] sm:text-6xl md:text-9xl text-sage drop-shadow-lg relative z-10 leading-none">
-              Hashimi
+            <motion.h2 whileHover={{ scale: 1.05 }} className="script text-[11vw] sm:text-5xl md:text-8xl text-sage drop-shadow-lg relative z-10 leading-none">
+              Lahiru
             </motion.h2>
           </div>
 
@@ -889,7 +943,7 @@ export default function App() {
 
               {/* envelope body back */}
               <div className="absolute bottom-0 left-0 right-0 h-[64%] sm:h-[66%] md:h-[68%] rounded-b-[2.5rem] overflow-hidden z-10 shadow-[0_24px_70px_-12px_rgba(61,34,21,0.55)]">
-                <div className="absolute inset-0 bg-gradient-to-b from-umber via-rust/35 to-sienna/55" />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#C9A66B] via-[#E5D3A2]/45 to-[#E5D3A2]/65" />
                 <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]" />
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-umber/25" />
                 <div className="absolute inset-x-0 top-0 h-[2px] bg-white/8" />
@@ -913,7 +967,7 @@ export default function App() {
                 }}
               >
                 <div
-                  className="absolute inset-0 bg-gradient-to-br from-umber/95 via-rust/70 to-sienna/75"
+                  className="absolute inset-0 bg-gradient-to-br from-[#C9A66B]/95 via-[#E5D3A2]/80 to-[#E5D3A2]/85"
                   style={{
                     clipPath: "polygon(0 100%, 50% 0, 100% 100%)",
                   }}
@@ -923,7 +977,7 @@ export default function App() {
                 </div>
 
                 <div
-                  className="absolute inset-0 bg-gradient-to-b from-sage to-rust"
+                  className="absolute inset-0 bg-gradient-to-b from-[#E5D3A2] to-[#D4AF37]"
                   style={{
                     clipPath: "polygon(3% 100%, 50% 10%, 97% 100%)",
                   }}
@@ -982,85 +1036,79 @@ export default function App() {
                   </div>
 
                   {/* content */}
-                  <div className="relative z-10 px-4 pt-4 pb-3 sm:px-6 sm:pt-7 sm:pb-7 md:px-10 md:py-8 flex flex-col items-center text-center gap-0 sm:gap-2 md:gap-3">
-                    {/* top ornament */}
-                    <div className="flex items-center gap-3 w-full max-w-[240px]">
-                      <div className="flex-1 h-px bg-gradient-to-r from-transparent to-taupe/55" />
-                      <motion.div
-                        animate={{ rotate: [0, 10, -10, 0] }}
-                        transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-                      >
-                        <svg viewBox="0 0 16 16" className="w-3 h-3 opacity-50 text-sage" fill="currentColor">
-                          <path d="M8 0 L9.5 6.5 L16 8 L9.5 9.5 L8 16 L6.5 9.5 L0 8 L6.5 6.5 Z" />
-                        </svg>
-                      </motion.div>
-                      <div className="flex-1 h-px bg-gradient-to-l from-transparent to-taupe/55" />
-                    </div>
-
-                    {/* logo */}
-                    <motion.div
-                      animate={{ scale: [1, 1.04, 1] }}
-                      transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                      className="-mb-6 sm:-mb-2 md:mb-0"
-                    >
-                      <img src="/images/logo.png" alt="Z&H Logo" className="w-28 h-28 sm:w-36 sm:h-36 md:w-48 md:h-48 object-contain drop-shadow-md" />
-                    </motion.div>
-
-                    {/* hosting families */}
-                    <div className="space-y-0.5">
-                      <p className="serif text-[9px] sm:text-[10px] md:text-[13px] uppercase tracking-[0.3em] text-umber font-normal leading-relaxed">
-                        MR. &amp; MRS. ZAKEER
-                      </p>
-                      <p className="text-[7px] sm:text-[8px] md:text-[9px] uppercase tracking-[0.25em] text-taupe font-medium">
-                        TOGETHER WITH
-                      </p>
-                      <p className="serif text-[9px] sm:text-[10px] md:text-[13px] uppercase tracking-[0.3em] text-umber font-normal leading-relaxed">
-                        MR. &amp; MRS. ZAFIR ISMAIL
-                      </p>
-                    </div>
-
-                    <p className="serif mb-2.5 sm:mb-0 text-[10px] sm:text-[11px] md:text-[14px] uppercase tracking-[0.2em] text-taupe/80 font-normal leading-relaxed max-w-[200px] md:max-w-xs">
-                      REQUEST THE PLEASURE OF YOUR COMPANY TO CELEBRATE THE MARRIAGE OF THEIR CHILDREN
-                    </p>
+                  <div className="relative z-10 px-4 pt-4 pb-3 sm:px-6 sm:pt-7 sm:pb-7 md:px-10 md:py-8 flex flex-col items-center justify-center h-full text-center gap-2 sm:gap-3 md:gap-5">
+                    {/* Background faint elephants */}
+                    <img 
+                      src="/images/elephant.jpg" 
+                      alt="" 
+                      className="absolute top-[15%] -left-8 sm:-left-4 w-32 sm:w-40 h-auto opacity-[0.05] mix-blend-multiply pointer-events-none" 
+                    />
+                    <img 
+                      src="/images/elephant.jpg" 
+                      alt="" 
+                      className="absolute top-[15%] -right-8 sm:-right-4 w-32 sm:w-40 h-auto opacity-[0.05] mix-blend-multiply pointer-events-none scale-x-[-1]" 
+                    />
+                    
+                    <img 
+                      src="/images/elephant.jpg" 
+                      alt="" 
+                      className="absolute bottom-[5%] -left-4 sm:left-2 w-32 sm:w-48 h-auto opacity-[0.07] mix-blend-multiply pointer-events-none" 
+                    />
+                    <img 
+                      src="/images/elephant.jpg" 
+                      alt="" 
+                      className="absolute bottom-[5%] -right-4 sm:right-2 w-32 sm:w-48 h-auto opacity-[0.07] mix-blend-multiply pointer-events-none scale-x-[-1]" 
+                    />
 
                     {/* couple names */}
-                    <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-4 max-w-full px-2">
-                      <span className="script text-[26px] sm:text-[32px] md:text-[48px] text-sage drop-shadow-sm leading-[1.1]">
-                        Zerlin
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-4 max-w-full px-2 mt-2 md:mt-4 z-20">
+                      <span className="script text-[36px] sm:text-[48px] md:text-[64px] text-[#2A2A2A] drop-shadow-sm leading-[1.1]">
+                        Gangamini
                       </span>
-                      <span className="text-taupe/50 text-sm md:text-xl font-serif">&amp;</span>
-                      <span className="script text-[26px] sm:text-[32px] md:text-[48px] text-sage drop-shadow-sm leading-[1.1]">
-                        Hashimi
+                      <span className="text-[#4A3C1A]/50 text-xl md:text-3xl font-serif">&amp;</span>
+                      <span className="script text-[36px] sm:text-[48px] md:text-[64px] text-[#2A2A2A] drop-shadow-sm leading-[1.1]">
+                        Lahiru
                       </span>
                     </div>
 
-                    {/* date / time / venue */}
-                    <div className="flex items-center gap-2 sm:gap-3 text-umber/70 w-full mt-1">
-                      <div className="h-px flex-1 bg-sand/45" />
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="serif text-[22px] sm:text-[28px] md:text-4xl text-umber font-medium leading-none">
-                          23
+                    {/* Elephant Divider */}
+                    <div className="flex items-center justify-between w-full relative px-1 sm:px-4 py-2 sm:py-3 z-20">
+                      <img src="/images/elephant.jpg" alt="Elephant" className="w-16 sm:w-20 md:w-28 h-auto mix-blend-multiply" />
+                      
+                      <div className="flex-1 flex flex-col justify-center gap-[2px] mx-2 sm:mx-4 mt-4">
+                        <div className="w-full h-px bg-[#4A3C1A]/50" />
+                        <div className="w-full h-[3px] bg-[#2A2A2A]/20" />
+                        <div className="w-full h-px bg-[#4A3C1A]/50" />
+                      </div>
+                      
+                      <img src="/images/elephant.jpg" alt="Elephant" className="w-16 sm:w-20 md:w-28 h-auto mix-blend-multiply scale-x-[-1]" />
+                    </div>
+
+                    {/* hosting families */}
+                    <div className="space-y-1 z-20">
+                      <p className="serif text-[10px] sm:text-[11px] md:text-[14px] uppercase tracking-[0.3em] text-[#2A2A2A] font-normal leading-relaxed">
+                        MR. &amp; MRS. RATHNAYAKA
+                      </p>
+                      <p className="text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.25em] text-[#4A3C1A] font-medium py-1">
+                        TOGETHER WITH
+                      </p>
+                      <p className="serif text-[10px] sm:text-[11px] md:text-[14px] uppercase tracking-[0.3em] text-[#2A2A2A] font-normal leading-relaxed">
+                        MR. &amp; MRS. HATHTHELLA
+                      </p>
+                    </div>
+
+                    {/* date */}
+                    <div className="flex items-center gap-2 sm:gap-3 text-[#2A2A2A]/70 w-full max-w-[200px] mt-2 sm:mt-4 mb-2 md:mb-6 z-20">
+                      <div className="h-px flex-1 bg-[#4A3C1A]/45" />
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="serif text-[28px] sm:text-[36px] md:text-5xl text-[#2A2A2A] font-medium leading-none">
+                          04
                         </span>
-                        <span className="text-[7px] sm:text-[8px] md:text-[9px] uppercase tracking-[0.3em] text-taupe font-bold">
-                          MAY · SATURDAY
-                        </span>
-                        <span className="text-[7px] sm:text-[8px] md:text-[9px] uppercase tracking-[0.25em] text-taupe font-bold">
-                          7:15 PM · 2026
-                        </span>
-                        <span className="serif mt-1 block max-w-[200px] px-2 text-[10px] sm:text-[11px] md:text-[12px] uppercase tracking-[0.12em] text-umber/75 text-center leading-snug break-words font-medium">
-                          GRAND BALLROOM, WATERS EDGE
+                        <span className="text-[9px] sm:text-[10px] md:text-[12px] uppercase tracking-[0.4em] text-[#4A3C1A] font-bold mt-1">
+                          NOVEMBER 2026
                         </span>
                       </div>
-                      <div className="h-px flex-1 bg-sand/45" />
-                    </div>
-
-                    {/* bottom ornament */}
-                    <div className="flex items-center gap-3 w-full max-w-[240px]">
-                      <div className="flex-1 h-px bg-gradient-to-r from-transparent to-taupe/55" />
-                      <svg viewBox="0 0 16 16" className="w-3 h-3 opacity-40 text-sage" fill="currentColor">
-                        <path d="M8 0 L9.5 6.5 L16 8 L9.5 9.5 L8 16 L6.5 9.5 L0 8 L6.5 6.5 Z" />
-                      </svg>
-                      <div className="flex-1 h-px bg-gradient-to-l from-transparent to-taupe/55" />
+                      <div className="h-px flex-1 bg-[#4A3C1A]/45" />
                     </div>
                   </div>
                 </div>
@@ -1069,7 +1117,7 @@ export default function App() {
               {/* front flaps */}
               <div className="absolute bottom-0 left-0 right-0 h-[64%] sm:h-[66%] md:h-[68%] z-30 rounded-b-[2.5rem] overflow-hidden pointer-events-none">
                 <div
-                  className="absolute inset-0 bg-gradient-to-br from-umber via-rust/85 to-sienna/80"
+                  className="absolute inset-0 bg-gradient-to-br from-[#C9A66B] via-[#E5D3A2]/95 to-[#E5D3A2]/90"
                   style={{
                     clipPath: "polygon(0 0, 50% 55%, 0 100%)",
                   }}
@@ -1079,7 +1127,7 @@ export default function App() {
                 </div>
 
                 <div
-                  className="absolute inset-0 bg-gradient-to-bl from-umber via-rust/85 to-sienna/80"
+                  className="absolute inset-0 bg-gradient-to-bl from-[#C9A66B] via-[#E5D3A2]/95 to-[#E5D3A2]/90"
                   style={{
                     clipPath: "polygon(100% 0, 50% 55%, 100% 100%)",
                   }}
@@ -1089,7 +1137,7 @@ export default function App() {
                 </div>
 
                 <div
-                  className="absolute inset-0 bg-umber/25"
+                  className="absolute inset-0 bg-[#C9A66B]/25"
                   style={{
                     clipPath: "polygon(45% 50%, 50% 55%, 55% 50%, 50% 48%)",
                   }}
@@ -1100,6 +1148,7 @@ export default function App() {
             </motion.div>
           )}
         </div>
+        <Countdown />
 
         {/* Bento Grid Layout - Flipped Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-10 relative">
@@ -1111,7 +1160,7 @@ export default function App() {
             className="w-full h-full col-span-2 lg:col-span-2"
           >
             <div className="w-full h-[220px] md:h-[350px] lg:h-[350px] relative overflow-hidden rounded-[2rem] shadow-2xl border border-white/40 ring-1 ring-black/5">
-              <div className="w-full h-full bg-[#F5EFE0] p-2 md:p-8 flex flex-col items-center justify-center text-center space-y-2 md:space-y-4 relative group">
+              <div className="w-full h-full bg-[#F9F6F0] p-2 md:p-8 flex flex-col items-center justify-center text-center space-y-2 md:space-y-4 relative group">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/natural-paper.png')] opacity-40 pointer-events-none" />
                 <div className="relative z-10 space-y-2 md:space-y-8 scale-[0.9] md:scale-100">
                   <div className="space-y-1">
@@ -1120,18 +1169,18 @@ export default function App() {
                   </div>
 
                   <div className="flex flex-col items-center">
-                    <p className="text-[8px] md:text-xs uppercase tracking-[0.4em] text-zinc-400 font-black mb-1 md:mb-2">Saturday</p>
+                    <p className="text-[8px] md:text-xs uppercase tracking-[0.4em] text-zinc-400 font-black mb-1 md:mb-2">Wednesday</p>
                     <div className="relative inline-block px-6 md:px-8 py-1 md:py-2 border-y border-sage/30">
-                      <p className="serif text-5xl md:text-8xl font-medium text-sage leading-none">23</p>
+                      <p className="serif text-5xl md:text-8xl font-medium text-sage leading-none">04</p>
                       <motion.div
                         animate={{ opacity: [0.4, 1, 0.4] }}
                         transition={{ repeat: Infinity, duration: 2 }}
-                        className="absolute -top-1 -right-1 text-[#A84C2C]"
+                        className="absolute -top-1 -right-1 text-[#B8860B]"
                       >
                         <Sparkles size={12} className="md:w-4 md:h-4" />
                       </motion.div>
                     </div>
-                    <p className="serif text-sm md:text-2xl font-light tracking-[0.2em] mt-2 md:mt-3">MAY</p>
+                    <p className="serif text-sm md:text-2xl font-light tracking-[0.2em] mt-2 md:mt-3">NOVEMBER</p>
                   </div>
 
                   <div className="pt-1">
@@ -1156,7 +1205,7 @@ export default function App() {
             <FlipCard
               containerClassName="w-full h-[380px] md:h-[350px] lg:h-[350px]"
               front={
-                <div className="w-full h-full bg-[#F5EFE0] p-6 flex flex-col justify-center items-center text-center relative group overflow-hidden">
+                <div className="w-full h-full bg-[#F9F6F0] p-6 flex flex-col justify-center items-center text-center relative group overflow-hidden">
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-sage/10 rounded-full blur-3xl pointer-events-none" />
                   <div className="relative z-10 space-y-3 md:space-y-6">
                     <div className="flex flex-col items-center gap-1">
@@ -1170,7 +1219,7 @@ export default function App() {
                     >
                       <img src="/images/logo.png" alt="Z&H Logo" className="w-[45vw] h-[45vw] sm:w-[220px] sm:h-[220px] md:w-[280px] md:h-[280px] object-contain drop-shadow-xl" />
                     </motion.div>
-                    <p className="text-[10px] md:text-xs uppercase tracking-[0.4em] text-zinc-400 font-bold mt-1">by 04.05.2026</p>
+                    <p className="text-[10px] md:text-xs uppercase tracking-[0.4em] text-zinc-400 font-bold mt-1">by 20.10.2026</p>
                   </div>
                 </div>
               }
@@ -1194,53 +1243,52 @@ export default function App() {
               front={
                 <div className="w-full h-full relative group">
                   <img
-                    src="https://www.watersedge.lk/wp-content/uploads/2026/01/004A2024-1024x1536.jpg"
-                    alt="Waters Edge Grand Ballroom"
+                    src="/hotel-bemaro.jpg"
+                    alt="Hotel Bemaro"
                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                    referrerPolicy="no-referrer"
                   />
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500" />
                   <div className="absolute top-6 right-6 md:top-10 md:right-10 bg-white/60 backdrop-blur-md p-4 md:p-8 border border-white/60 rounded-2xl group-hover:bg-white/80 transition-all duration-700 shadow-xl">
-                    <p className="serif text-[8px] md:text-xs uppercase tracking-[0.4em] text-sage/80 mb-2 flex items-center gap-2">
-                      <span className="w-4 h-px bg-sage/30" />
+                    <p className="serif text-[8px] md:text-xs uppercase tracking-[0.4em] text-umber/80 mb-2 flex items-center gap-2">
+                      <span className="w-4 h-px bg-umber/30" />
                       The Location
                     </p>
-                    <h3 className="serif text-2xl md:text-5xl text-sage leading-tight drop-shadow-sm font-medium">
-                      Waters Edge
+                    <h3 className="serif text-2xl md:text-5xl text-umber leading-tight drop-shadow-sm font-medium">
+                      Hotel Bemaro
                       <br />
-                      Grand Ballroom
+                      Embilipitiya
                     </h3>
 
                     <motion.button
                       data-no-flip
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => window.open("https://maps.app.goo.gl/3EQ7xzj3EX9T2xEx6", "_blank")}
-                      className="mt-3 md:mt-5 px-5 py-2 md:px-7 md:py-3 bg-sage text-white rounded-full text-[9px] md:text-xs font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors"
+                      onClick={() => window.open("https://maps.app.goo.gl/mXcLRhdG4devMMCf8", "_blank")}
+                      className="mt-3 md:mt-5 px-5 py-2 md:px-7 md:py-3 bg-umber text-white rounded-full text-[9px] md:text-xs font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors"
                     >
                       View Map
                     </motion.button>
                   </div>
 
-                  <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 text-sage flex items-center gap-3 bg-white/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/60 shadow-lg">
-                    <MapPin className="text-sage animate-bounce" size={16} />
-                    <p className="serif text-[10px] md:text-sm tracking-[0.2em] font-bold uppercase">Waters Edge</p>
+                  <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 text-umber flex items-center gap-3 bg-white/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/60 shadow-lg">
+                    <MapPin className="text-umber animate-bounce" size={16} />
+                    <p className="serif text-[10px] md:text-sm tracking-[0.2em] font-bold uppercase">Hotel Bemaro</p>
                   </div>
                 </div>
               }
               back={
                 <>
                   <MapPin size={24} className="text-sage mb-4 md:mb-6 opacity-70 md:w-9 md:h-9" />
-                  <h4 className="serif text-2xl md:text-4xl text-sage mb-2 md:mb-4">Waters Edge Grand Ballroom</h4>
+                  <h4 className="serif text-2xl md:text-4xl text-sage mb-2 md:mb-4">Hotel Bemaro Embilipitiya</h4>
                   <p className="text-[10px] md:text-sm text-zinc-500 uppercase tracking-widest leading-loose mb-4 md:mb-6">
-                    Waters Edge
+                    Hotel Bemaro
                     <br />
-                    Grand Ballroom
+                    Embilipitiya
                   </p>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => window.open("https://maps.app.goo.gl/3EQ7xzj3EX9T2xEx6", "_blank")}
+                    onClick={() => window.open("https://maps.app.goo.gl/mXcLRhdG4devMMCf8", "_blank")}
                     className="px-6 py-2 md:px-8 md:py-3 bg-sage text-white rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors"
                   >
                     View Map
@@ -1294,19 +1342,30 @@ export default function App() {
 
                   <div className="w-full max-w-sm space-y-4 md:space-y-6 text-left">
                     <div className="flex items-start gap-2 md:gap-4">
-                      <span className="serif text-sage font-bold text-[10px] md:text-base w-12 md:w-20 text-right shrink-0 pt-1">7:45 PM</span>
+                      <span className="serif text-sage font-bold text-[10px] md:text-base w-12 md:w-20 text-right shrink-0 pt-1">9:12 AM</span>
                       <div className="w-px h-full bg-sage/30 relative mt-2 -ml-[1px] md:-ml-2 shrink-0">
                         <div className="absolute top-0 -left-[3px] w-2 h-2 rounded-full bg-sage" />
                       </div>
                       <div>
-                        <p className="text-[10px] md:text-xs font-bold uppercase tracking-wider">Nikkah Ceremony</p>
-                        <p className="serif text-[10px] md:text-xs italic text-zinc-500">Followed by Dinner</p>
+                        <p className="text-[10px] md:text-xs font-bold uppercase tracking-wider">Poruwa Ceremony</p>
+                        <p className="serif text-[10px] md:text-xs italic text-zinc-500">9:00 AM - 4:00 PM</p>
                       </div>
                     </div>
                   </div>
                 </div>
               }
             />
+          </motion.div>
+
+          {/* Wishes Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.7 }}
+            className="w-full h-full col-span-2 lg:col-span-4"
+          >
+            <WishesForm />
           </motion.div>
         </div>
 
