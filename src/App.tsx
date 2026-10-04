@@ -205,18 +205,15 @@ function RSVPForm() {
   const endpoint = (import.meta as any).env?.VITE_RSVP_ENDPOINT as string | undefined;
 
   const [name, setName] = useState("");
-  const [guestCount, setGuestCount] = useState<number | "">(1);
-  const [attendance, setAttendance] = useState<Attendance>("yes");
+  const [guestCount, setGuestCount] = useState<number>(1);
+  const [dietaryNotes, setDietaryNotes] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const isAttending = attendance === "yes";
-
   function validate(): string | null {
     if (!name.trim()) return "Please enter your name.";
-    if (isAttending && guestCount < 1) return "Please enter a valid number of guests.";
     return null;
   }
 
@@ -238,8 +235,9 @@ function RSVPForm() {
 
     const payload = {
       name: name.trim(),
-      guestCount: isAttending ? Number(guestCount) : 0,
-      attendance,
+      guestCount: Number(guestCount),
+      attendance: guestCount > 0 ? "yes" : "no",
+      dietaryNotes: dietaryNotes.trim(),
       submittedAt: new Date().toISOString(),
     };
 
@@ -270,72 +268,102 @@ function RSVPForm() {
     <div data-no-flip className="w-full cursor-auto">
       <CheckCircle2 size={24} className="text-sage mb-2 md:mb-4 mx-auto opacity-70 md:w-8 md:h-8" />
       <h4 className="serif text-2xl md:text-3xl text-sage mb-2 md:mb-3 text-center">RSVP</h4>
-      <p className="text-[10px] md:text-xs text-zinc-500 uppercase tracking-widest mb-4 md:mb-6 text-center leading-relaxed">
+      <p className="text-[10px] md:text-xs text-zinc-500 uppercase tracking-widest mb-3 md:mb-4 text-center leading-relaxed">
         Please let us know by
         <br />
         20.10.2026
       </p>
 
-      <form onSubmit={submit} className="space-y-4 md:space-y-4 px-1 md:px-2">
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            data-no-flip
-            onClick={() => setAttendance("yes")}
-            className={`py-3 md:py-2.5 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold border transition-colors ${
-              attendance === "yes" ? "bg-sage text-white border-sage" : "bg-white/40 text-sage border-sage/30"
-            }`}
-          >
-            Attending
-          </button>
-          <button
-            type="button"
-            data-no-flip
-            onClick={() => setAttendance("no")}
-            className={`py-3 md:py-2.5 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold border transition-colors ${
-              attendance === "no" ? "bg-zinc-800 text-white border-zinc-800" : "bg-white/40 text-zinc-700 border-zinc-300/60"
-            }`}
-          >
-            Not Attending
-          </button>
+      <div className="flex justify-center items-center gap-4 mb-4 md:mb-6 text-[9px] md:text-[10px] text-zinc-600">
+        <div className="flex flex-col items-center">
+          <span className="uppercase tracking-widest font-bold text-sage">Gangamini</span>
+          <span className="mt-0.5">077 0717654</span>
         </div>
+        <div className="w-px h-6 bg-sage/30"></div>
+        <div className="flex flex-col items-center">
+          <span className="uppercase tracking-widest font-bold text-sage">Lahiru</span>
+          <span className="mt-0.5">071 0831083</span>
+        </div>
+      </div>
 
-        <div className="space-y-2">
+      <form onSubmit={submit} className="space-y-4 md:space-y-5 bg-white/40 p-5 sm:p-6 md:p-8 rounded-[2rem] border border-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] text-left" style={{ opacity: 1 }}>
+        <div>
+          <label className="block text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500 mb-2 ml-2">
+            Full Name
+          </label>
           <input
             data-no-flip
+            required
             value={name}
             onChange={(ev) => setName(ev.target.value)}
-            placeholder="Your name"
-            className="w-full rounded-xl border border-sage/20 bg-white/60 px-3 py-3 md:py-2.5 text-xs text-zinc-700 outline-none"
+            placeholder="E.g., John & Jane Doe"
+            className="w-full bg-white/80 px-4 md:px-6 py-3 md:py-4 rounded-full border border-sage/20 focus:ring-2 focus:ring-sage/30 focus:border-sage/40 outline-none transition-all duration-300 font-serif italic text-base md:text-lg shadow-inner placeholder:text-zinc-300"
+            type="text"
           />
-
-          <div className={`transition-opacity duration-300 ${!isAttending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
-            <input
+        </div>
+        
+        <div>
+          <label className="block text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500 mb-2 ml-2">
+            Number of Guests
+          </label>
+          <div className="relative group">
+            <select
               data-no-flip
-              type="number"
-              min={1}
               value={guestCount}
-              onChange={(ev) => setGuestCount(ev.target.value === "" ? "" : Number(ev.target.value))}
-              placeholder="Number of guests"
-              className="w-full rounded-xl border border-sage/20 bg-white/60 px-3 py-3 md:py-2.5 text-xs text-zinc-700 outline-none"
-            />
+              onChange={(ev) => setGuestCount(Number(ev.target.value))}
+              className="w-full bg-white/80 px-4 md:px-6 py-3 md:py-4 rounded-full border border-sage/20 focus:ring-2 focus:ring-sage/30 focus:border-sage/40 outline-none transition-all duration-300 appearance-none font-serif italic text-base md:text-lg shadow-inner text-zinc-700 cursor-pointer"
+            >
+              <option value={1}>Just Me (1 Guest)</option>
+              <option value={2}>We are coming! (2 Guests)</option>
+              <option value={3}>3 Guests</option>
+              <option value={4}>4 Guests</option>
+              <option value={5}>5 Guests</option>
+              <option value={0}>Regretfully Declining</option>
+            </select>
+            <div className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 pointer-events-none text-sage transition-transform duration-300 group-hover:scale-110">
+              <Heart className="w-4 h-4 md:w-5 md:h-5 fill-sage/30 drop-shadow-sm text-sage" />
+            </div>
           </div>
         </div>
 
-        {errorMessage && <p className="text-[10px] md:text-xs text-red-700 font-semibold">{errorMessage}</p>}
-        {successMessage && <p className="text-[10px] md:text-xs text-sage font-bold">{successMessage}</p>}
+        {guestCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-2">
+              <label className="block text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500 mb-2 ml-2">
+                Dietary Notes (Optional)
+              </label>
+              <textarea
+                data-no-flip
+                value={dietaryNotes}
+                onChange={(ev) => setDietaryNotes(ev.target.value)}
+                placeholder="We'd love to know if you have any allergies..."
+                className="w-full bg-white/80 px-4 md:px-6 py-3 md:py-4 rounded-[1.5rem] md:rounded-[2rem] border border-sage/20 focus:ring-2 focus:ring-sage/30 focus:border-sage/40 outline-none transition-all duration-300 h-20 md:h-24 resize-none font-serif italic text-base md:text-lg shadow-inner placeholder:text-zinc-300"
+              ></textarea>
+            </div>
+          </motion.div>
+        )}
 
-        <button
-          type="submit"
-          data-no-flip
-          disabled={submitting}
-          className="w-full bg-sage text-white py-3 md:py-3 rounded-xl text-[10px] md:text-xs uppercase tracking-widest font-bold disabled:opacity-60"
-        >
-          {submitting ? "Submitting..." : "Submit RSVP"}
-        </button>
+        {errorMessage && <p className="text-[10px] md:text-xs text-red-700 font-semibold text-center mt-2">{errorMessage}</p>}
+        {successMessage && <p className="text-[10px] md:text-xs text-sage font-bold text-center mt-2">{successMessage}</p>}
 
+        <div className="pt-2 md:pt-4">
+          <button
+            data-no-flip
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-zinc-800 text-[#F9F6F0] py-4 md:py-5 rounded-full font-sans tracking-[0.3em] font-bold text-[10px] md:text-[11px] uppercase hover:bg-zinc-900 transition-all duration-300 shadow-[0_10px_20px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.25)] active:scale-[0.98] flex items-center justify-center gap-2 md:gap-3 disabled:opacity-70"
+          >
+            {submitting ? "Submitting..." : guestCount === 0 ? "Send RSVP" : "Confirm Attendance"}
+          </button>
+        </div>
+        
         {!endpoint && (
-          <p className="text-[10px] md:text-[10px] text-zinc-500 leading-relaxed text-center">
+          <p className="text-[9px] md:text-[10px] text-zinc-500 leading-relaxed text-center mt-2">
             Admin setup needed: set <span className="font-bold">VITE_RSVP_ENDPOINT</span> to your Google Apps Script URL.
           </p>
         )}
@@ -1329,7 +1357,7 @@ export default function App() {
                     <motion.div initial={{ scale: 0.8, opacity: 0 }} whileHover={{ scale: 1, opacity: 1 }} className="bg-white/10 backdrop-blur-lg p-6 rounded-full border border-white/20">
                       <Clock size={32} className="text-white" />
                     </motion.div>
-                    <p className="serif text-black text-3xl md:text-5xl italic tracking-widest mt-6 drop-shadow-lg">Event Timeline</p>
+                    <p className="serif text-white text-3xl md:text-5xl italic tracking-widest mt-6 drop-shadow-lg">Event Timeline</p>
                     <div className="mt-4 flex gap-2">
                       {[1, 2, 3].map((i) => (
                         <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/50" />
