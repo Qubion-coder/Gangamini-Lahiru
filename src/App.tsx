@@ -487,7 +487,7 @@ function WishesForm() {
 export default function App() {
   const [isFlapOpen, setIsFlapOpen] = useState(false);
   const [isOpened, setIsOpened] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -533,6 +533,9 @@ export default function App() {
 
   const handleOpen = () => {
     setIsFlapOpen(true);
+    if (!isMuted && audioRef.current) {
+      audioRef.current.play().catch(() => {});
+    }
     setTimeout(() => {
       setIsOpened(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -562,7 +565,7 @@ export default function App() {
     <div
       className="min-h-screen bg-paper text-zinc-800 selection:bg-sage/20 overflow-x-hidden relative"
     >
-      <audio ref={audioRef} src="/song.mp3" loop preload="auto" />
+      <audio ref={audioRef} src="/song.mp3" loop autoPlay preload="auto" />
 
       <motion.div className="fixed top-0 left-0 right-0 h-1 bg-sage origin-left z-[1000]" style={{ scaleX }} />
 
